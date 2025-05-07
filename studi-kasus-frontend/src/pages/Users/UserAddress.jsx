@@ -1,364 +1,320 @@
-import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { getLocationData, getAddress, createAddress } from '../../api/address';
-import Swal from 'sweetalert2';
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchAddresses,
+  createNewAddress,
+  deleteUserAddress
+} from "../../redux/slices/addressSlice";
+import { getLocationData } from "../../api/address";
+import Swal from "sweetalert2";
 
-const UserAddress = () => {
-  // State untuk menyimpan alamat yang ada
-  const [addresses, setAddresses] = useState([]);
-
-  // State untuk menyimpan data alamat baru yang akan ditambahkan
-  const [newAddress, setNewAddress] = useState({
-    nama: '',
-    provinsi: '',
-    kabupaten: '',
-    kecamatan: '',
-    kelurahan: '',
-    detail: '',
+export const UserAddress = () => {
+  const dispatch = useDispatch();
+  const {
+    addresses,
+    status: addressStatus,
+    error: addressError,
+  } = useSelector((state) => state.addresses);
+  const token = useSelector((state) => state.auth.token);
+  const { data: user } = useSelector((state) => state.user);
+  const [selected, setSelected] = useState({
+    provinsi: "",
+    kabupaten: "",
+    kecamatan: "",
+    kelurahan: "",
   });
 
-  // State untuk menyimpan data lokasi
-  const [provinces, setProvinces] = useState([]);
-  const [regencies, setRegencies] = useState([]);
-  const [districts, setDistricts] = useState([]);
-  const [kelurahans, setKelurahans] = useState([]);
+  const [locations, setLocations] = useState({
+    provinsi: [],
+    kabupaten: [],
+    kecamatan: [],
+    kelurahan: [],
+  });
 
-  // Mengambil token dari Redux store
-  const token = useSelector((state) => state.auth.token);
+  const [newAddress, setNewAddress] = useState("");
+  const [nama, setNama] = useState("");
 
-  // useEffect untuk mem-fetch data alamat dan provinsi saat token tersedia
   useEffect(() => {
     if (token) {
-      fetchAddresses();
-      fetchProvinces();
-    } else {
-      Swal.fire({
-        icon: 'error',
-        title: 'Unauthorized',
-        text: 'No token found. Please log in again.',
-      });
+      dispatch(fetchAddresses(token));
     }
-  }, [token]);
+  }, [token, dispatch]);
 
-  // Fungsi untuk mengambil alamat pengguna
-  const fetchAddresses = async () => {
+  useEffect(() => {
+    const loadProvinces = async () => {
+      try {
+        const provinces = await getLocationData("provinsi");
+        setLocations((prev) => ({ ...prev, provinsi: provinces }));
+      } catch (error) {
+        console.error("Error loading provinces:", error);
+      }
+    };
+
+    loadProvinces();
+  }, []);
+
+  const handleSelectChange = async (e, type) => {
+    const { value } = e.target;
+    setSelected((prev) => ({ ...prev, [type]: value }));
+
     try {
-      const response = await getAddress(token);
-      if (Array.isArray(response)) {
-        setAddresses(response);
-      } else {
-        setAddresses([]); // Pastikan addresses selalu array
+      if (type === "provinsi") {
+        const regencies = await getLocationData("kabupaten", value);
+        setLocations((prev) => ({ ...prev, kabupaten: regencies }));
+      } else if (type === "kabupaten") {
+        const districts = await getLocationData("kecamatan", value);
+        setLocations((prev) => ({ ...prev, kecamatan: districts }));
+      } else if (type === "kecamatan") {
+        const villages = await getLocationData("kelurahan", value);
+        setLocations((prev) => ({ ...prev, kelurahan: villages }));
       }
     } catch (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to fetch addresses!',
-      });
+      console.error(`Error loading ${type} data:`, error);
     }
   };
 
-  // Fungsi untuk mengambil data provinsi
-  const fetchProvinces = async () => {
-    try {
-      const response = await getLocationData('provinsi');
-      setProvinces(response.data);
-    } catch (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to fetch provinces!',
-      });
-    }
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  // Handler saat provinsi berubah
-  const handleProvinceChange = async (provinsiName) => {
-    try {
-      // Cari objek provinsi yang dipilih berdasarkan nama
-      const selectedProvince = provinces.find((province) => province.name === provinsiName);
-      if (selectedProvince) {
-        // Update state dengan nama provinsi dan reset kabupaten, kecamatan, kelurahan
-        setNewAddress({
-          ...newAddress,
-          provinsi: selectedProvince.name,
-          kabupaten: '',
-          kecamatan: '',
-          kelurahan: '',
-        });
-
-        // Fetch kabupaten/kota berdasarkan ID provinsi
-        const response = await getLocationData('kabupaten', selectedProvince.id);
-        setRegencies(response.data);
-        setDistricts([]);
-        setKelurahans([]);
-      }
-    } catch (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to fetch regencies!',
-      });
-    }
-  };
-
-  // Handler saat kabupaten/kota berubah
-  const handleRegencyChange = async (kabupatenName) => {
-    try {
-      // Cari objek kabupaten/kota yang dipilih berdasarkan nama
-      const selectedRegency = regencies.find((regency) => regency.name === kabupatenName);
-      if (selectedRegency) {
-        // Update state dengan nama kabupaten/kota dan reset kecamatan, kelurahan
-        setNewAddress({
-          ...newAddress,
-          kabupaten: selectedRegency.name,
-          kecamatan: '',
-          kelurahan: '',
-        });
-
-        // Fetch kecamatan berdasarkan ID kabupaten/kota
-        const response = await getLocationData('kecamatan', selectedRegency.id);
-        setDistricts(response.data);
-        setKelurahans([]);
-      }
-    } catch (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to fetch districts!',
-      });
-    }
-  };
-
-  // Handler saat kecamatan berubah
-  const handleKecamatanChange = async (kecamatanName) => {
-    try {
-      // Cari objek kecamatan yang dipilih berdasarkan nama
-      const selectedDistrict = districts.find((district) => district.name === kecamatanName);
-      if (selectedDistrict) {
-        // Update state dengan nama kecamatan dan reset kelurahan
-        setNewAddress({
-          ...newAddress,
-          kecamatan: selectedDistrict.name,
-          kelurahan: '',
-        });
-
-        // Fetch kelurahan berdasarkan ID kecamatan
-        const response = await getLocationData('kelurahan', selectedDistrict.id);
-        setKelurahans(response.data);
-      }
-    } catch (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to fetch kelurahans!',
-      });
-    }
-  };
-
-  // Handler saat kelurahan berubah
-  const handleKelurahanChange = (kelurahanName) => {
-    // Cari objek kelurahan yang dipilih berdasarkan nama
-    const selectedKelurahan = kelurahans.find((kelurahan) => kelurahan.name === kelurahanName);
-    if (selectedKelurahan) {
-      setNewAddress({
-        ...newAddress,
-        kelurahan: selectedKelurahan.name,
-      });
-    }
-  };
-
-  // Handler saat menambahkan alamat baru
-  const handleAddAddress = async () => {
     if (!token) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Unauthorized',
-        text: 'No token found. Please log in again.',
-      });
-      return;
-    }
-
-    // Validasi form
-    const { nama, provinsi, kabupaten, kecamatan, kelurahan, detail } = newAddress;
-    if (!nama || !provinsi || !kabupaten || !kecamatan || !kelurahan || !detail) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Incomplete Data',
-        text: 'Please fill in all fields.',
-      });
+      Swal.fire("Error", "Anda harus login terlebih dahulu", "error");
       return;
     }
 
     try {
-      await createAddress(newAddress, token);
-      Swal.fire({
-        icon: 'success',
-        title: 'Success',
-        text: 'Address added successfully!',
+      const provinsiObj = locations.provinsi.find(
+        (p) => p.id === selected.provinsi
+      );
+      const kabupatenObj = locations.kabupaten.find(
+        (r) => r.id === selected.kabupaten
+      );
+      const kecamatanObj = locations.kecamatan.find(
+        (d) => d.id === selected.kecamatan
+      );
+      const kelurahanObj = locations.kelurahan.find(
+        (v) => v.id === selected.kelurahan
+      );
+
+      if (
+        !nama?.trim() ||
+        !newAddress?.trim() ||
+        !provinsiObj ||
+        !kabupatenObj ||
+        !kecamatanObj ||
+        !kelurahanObj
+      ) {
+        throw new Error("Semua field harus diisi");
+      }
+
+      const addressData = {
+        nama: nama.trim(),
+        provinsi: provinsiObj.name,
+        kabupaten: kabupatenObj.name,
+        kecamatan: kecamatanObj.name,
+        kelurahan: kelurahanObj.name,
+        detail: newAddress.trim(),
+        user: user._id,
+      };
+
+      await dispatch(createNewAddress({ addressData, token })).unwrap();
+
+      Swal.fire("Sukses", "Alamat berhasil disimpan", "success");
+
+      setNama("");
+      setNewAddress("");
+      setSelected({
+        provinsi: "",
+        kabupaten: "",
+        kecamatan: "",
+        kelurahan: "",
       });
-      // Reset form alamat baru
-      setNewAddress({
-        nama: '',
-        provinsi: '',
-        kabupaten: '',
-        kecamatan: '',
-        kelurahan: '',
-        detail: '',
-      });
-      // Reset data lokasi
-      setRegencies([]);
-      setDistricts([]);
-      setKelurahans([]);
-      // Refresh daftar alamat
-      fetchAddresses(); 
     } catch (error) {
-      console.error('Error adding address:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to add address!',
+      console.error("Error:", error);
+      Swal.fire("Gagal", error.message || "Gagal menyimpan alamat", "error");
+    }
+  };
+
+  const handleDeleteAddress = async (addressId) => {
+    try {
+      const result = await Swal.fire({
+        title: 'Konfirmasi',
+        text: 'Anda yakin ingin menghapus alamat ini?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Ya, Hapus!'
       });
+  
+      if (result.isConfirmed) {
+        await dispatch(deleteUserAddress({ addressId, token })).unwrap();
+        Swal.fire('Dihapus!', 'Alamat telah dihapus.', 'success');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      Swal.fire('Gagal', error.message, 'error');
     }
   };
 
   return (
-    <div className='container'>
-      <h3>User Address</h3>
-      {addresses.length > 0 ? (
-        <table className="table">
-          <thead>
-            <tr>
-              <th scope="col">No.</th>
-              <th scope="col">Nama Tempat</th>
-              <th scope="col">Kelurahan</th>
-              <th scope="col">Kecamatan</th>
-              <th scope="col">Kabupaten</th>
-              <th scope="col">Provinsi</th>
-              <th scope="col">Detail</th>
-            </tr>
-          </thead>
-          <tbody>
-            {addresses.map((address, index) => (
-              <tr key={index}>
-                <th scope="row">{index + 1}</th>
-                <td>{address.nama}</td>
-                <td>{address.kelurahan}</td>
-                <td>{address.kecamatan}</td>
-                <td>{address.kabupaten}</td>
-                <td>{address.provinsi}</td>
-                <td>{address.detail}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p>No addresses found.</p>
-      )}
-      <h4>Add New Address</h4>
-      <div className='card p-5 mx-auto' style={{ width: '30rem' }}>
-        <div className="address-form">
-          {/* Nama Tempat */}
-          <div className="form-group">
-            <label htmlFor="namaTempat">Nama Tempat:</label>
-            <input
-              type="text"
-              id="namaTempat"
-              className="form-control"
-              value={newAddress.nama}
-              onChange={(e) => setNewAddress({ ...newAddress, nama: e.target.value })}
-            />
-          </div>
+    <div className="container mt-4">
+      <div className="card shadow-lg">
+        <div className="card-body">
+          <h3 className="card-title text-center text-primary">Tambah Alamat</h3>
 
-          {/* Provinsi */}
-          <div className="form-group">
-            <label htmlFor="provinsi">Provinsi:</label>
-            <select
-              id="provinsi"
-              className="form-control"
-              value={newAddress.provinsi}
-              onChange={(e) => handleProvinceChange(e.target.value)}
+          <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label className="form-label">Nama Alamat</label>
+              <input
+                type="text"
+                className="form-control"
+                value={nama}
+                onChange={(e) => setNama(e.target.value)}
+                placeholder="Contoh: Rumah, Kantor, Kos"
+                maxLength={255}
+                required
+              />
+              <small className="text-muted">Maksimal 255 karakter</small>
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label">Provinsi</label>
+              <select
+                className="form-select"
+                value={selected.provinsi}
+                onChange={(e) => handleSelectChange(e, "provinsi")}
+                required
+              >
+                <option value="">Pilih Provinsi</option>
+                {locations.provinsi.map((prov) => (
+                  <option key={prov.id} value={prov.id}>
+                    {prov.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label">Kabupaten/Kota</label>
+              <select
+                className="form-select"
+                value={selected.kabupaten}
+                onChange={(e) => handleSelectChange(e, "kabupaten")}
+                disabled={!selected.provinsi}
+                required
+              >
+                <option value="">Pilih Kabupaten/Kota</option>
+                {locations.kabupaten.map((kab) => (
+                  <option key={kab.id} value={kab.id}>
+                    {kab.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label">Kecamatan</label>
+              <select
+                className="form-select"
+                value={selected.kecamatan}
+                onChange={(e) => handleSelectChange(e, "kecamatan")}
+                disabled={!selected.kabupaten}
+                required
+              >
+                <option value="">Pilih Kecamatan</option>
+                {locations.kecamatan.map((kec) => (
+                  <option key={kec.id} value={kec.id}>
+                    {kec.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label">Kelurahan</label>
+              <select
+                className="form-select"
+                value={selected.kelurahan}
+                onChange={(e) => handleSelectChange(e, "kelurahan")}
+                disabled={!selected.kecamatan}
+                required
+              >
+                <option value="">Pilih Kelurahan</option>
+                {locations.kelurahan.map((kel) => (
+                  <option key={kel.id} value={kel.id}>
+                    {kel.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label">Detail Alamat</label>
+              <textarea
+                className="form-control"
+                value={newAddress}
+                onChange={(e) => setNewAddress(e.target.value)}
+                placeholder="Masukkan detail alamat (contoh: Jalan, Nomor Rumah, Patokan)"
+                rows={3}
+                maxLength={1000}
+                required
+              />
+              <small className="text-muted">Maksimal 1000 karakter</small>
+            </div>
+
+            <button
+              type="submit"
+              className="btn btn-primary w-100 shadow-sm"
+              disabled={addressStatus === "loading"}
             >
-              <option value="" disabled>Pilih Provinsi</option>
-              {provinces.map((province) => (
-                <option key={province.id} value={province.name}>{province.name}</option>
-              ))}
-            </select>
-          </div>
+              {addressStatus === "loading" ? "Menyimpan..." : "Simpan Alamat"}
+            </button>
+          </form>
 
-          {/* Kabupaten/Kota */}
-          <div className="form-group">
-            <label htmlFor="kabupaten">Kabupaten/Kota:</label>
-            <select
-              id="kabupaten"
-              className="form-control"
-              value={newAddress.kabupaten}
-              onChange={(e) => handleRegencyChange(e.target.value)}
-              disabled={!regencies.length} // Disable jika regencies kosong
-            >
-              <option value="" disabled>Pilih Kabupaten/Kota</option>
-              {regencies.map((regency) => (
-                <option key={regency.id} value={regency.name}>{regency.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Kecamatan */}
-          <div className="form-group">
-            <label htmlFor="kecamatan">Kecamatan:</label>
-            <select
-              id="kecamatan"
-              className="form-control"
-              value={newAddress.kecamatan}
-              onChange={(e) => handleKecamatanChange(e.target.value)}
-              disabled={!districts.length} // Disable jika districts kosong
-            >
-              <option value="" disabled>Pilih Kecamatan</option>
-              {districts.map((district) => (
-                <option key={district.id} value={district.name}>{district.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Kelurahan */}
-          <div className="form-group">
-            <label htmlFor="kelurahan">Kelurahan:</label>
-            <select
-              id="kelurahan"
-              className="form-control"
-              value={newAddress.kelurahan}
-              onChange={(e) => handleKelurahanChange(e.target.value)}
-              disabled={!kelurahans.length} // Disable jika kelurahans kosong
-            >
-              <option value="" disabled>Pilih Kelurahan</option>
-              {kelurahans.map((kelurahan) => (
-                <option key={kelurahan.id} value={kelurahan.name}>{kelurahan.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Detail Alamat */}
-          <div className="form-group">
-            <label htmlFor="detail">Detail:</label>
-            <textarea
-              id="detail"
-              className="form-control"
-              value={newAddress.detail}
-              onChange={(e) => setNewAddress({ ...newAddress, detail: e.target.value })}
-            />
-          </div>
-
-          {/* Tombol Submit */}
-          <button
-            className="btn btn-primary mt-3"
-            onClick={handleAddAddress}
-          >
-            Add Address
-          </button>
+          <h3 className="mt-4 text-primary">Alamat Tersimpan</h3>
+          <ul className="list-group mt-2">
+            {addressStatus === "loading" ? (
+              <div className="text-center">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+              </div>
+            ) : addressError ? (
+              <p className="text-danger text-center">{addressError}</p>
+            ) : addresses.length > 0 ? (
+              addresses.map((addr, index) => (
+                <li key={index} className="list-group-item">
+                  <div className="d-flex justify-content-between align-items-start">
+                    <div>
+                      <strong>{addr.nama}</strong>
+                      <p className="mb-1">
+                        {addr.detail}, {addr.kelurahan}, {addr.kecamatan},{" "}
+                        {addr.kabupaten}, {addr.provinsi}
+                      </p>
+                    </div>
+                    <div>
+                      <button className="btn btn-sm btn-outline-primary me-2">
+                        Edit
+                      </button>
+                      <button
+                        className="btn btn-sm btn-outline-danger"
+                        onClick={() => handleDeleteAddress(addr._id)}
+                        disabled={addressStatus === "loading"}
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))
+            ) : (
+              <p className="text-muted text-center">
+                Belum ada alamat tersimpan.
+              </p>
+            )}
+          </ul>
         </div>
       </div>
     </div>
   );
 };
-
-export default UserAddress;

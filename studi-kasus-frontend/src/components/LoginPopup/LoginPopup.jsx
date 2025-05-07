@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import axios from 'axios';
-import { userLogin } from '../../redux/slices/auth'; // Sesuaikan path sesuai struktur proyek Anda
+import { loginUser, registerUser } from '../../redux/slices/auth'; // Sesuaikan path sesuai struktur proyek Anda
 import { assets } from '../../assets/assets';
 import './LoginPopup.css';
+import { fetchCartItems } from '../../redux/slices/cartSlice';
 
 const LoginPopup = ({ setShowLogin }) => {
   const dispatch = useDispatch();
@@ -16,22 +16,20 @@ const LoginPopup = ({ setShowLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    try {
-      let response;
-      if (currState === "Login") {
-        response = await axios.post('http://localhost:5000/auth/login', { email, password });
-      } else {
-        response = await axios.post('http://localhost:5000/auth/register', { username, email, password, role });
+    if (currState === "Login") {
+      try {
+        const resultAction = await dispatch(loginUser({ email, password })).unwrap();
+        if (resultAction) {
+          dispatch(fetchCartItems()); 
+        }
+      } catch (error) {
+        console.error("Login gagal:", error);
       }
-
-      const data = response.data;
-      // console.log('Login response data:', data);
-
-      dispatch(userLogin({ user: data, token: data.token }));
-      setShowLogin(false);
-    } catch (error) {
-      console.error('Error:', error);
+    } else {
+      dispatch(registerUser({ username, email, password, role }));
     }
+
+    setShowLogin(false);
   };
 
   return (

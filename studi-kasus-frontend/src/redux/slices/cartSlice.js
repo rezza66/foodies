@@ -1,18 +1,61 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { BASE_URL } from '../../utils/config';
 
-// Asumsi: API endpoint untuk mengambil daftar makanan
-const API_URL = 'http://localhost:5000/api/carts';
+// **Thunk untuk mengambil daftar item dalam cart**
+export const fetchCartItems = createAsyncThunk('cart/fetchCartItems', async (id, { rejectWithValue }) => {
+  try {
+    const token = localStorage.getItem('accessToken');  // Ambil token dari localStorage
+    const response = await axios.get(`${BASE_URL}/api/cart/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data || 'Terjadi kesalahan saat mengambil cart');
+  }
+});
 
-// Async thunk untuk mengambil data dari backend
-export const fetchFoodList = createAsyncThunk('cart/fetchFoodList', async () => {
-  const response = await axios.get(API_URL);
-  return response.data;
+// **Thunk untuk menambah item ke cart**
+export const addToCart = createAsyncThunk('cart/addToCart', async (item, { rejectWithValue }) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    const response = await axios.post(`${BASE_URL}/api/cart`, item, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data || 'Gagal menambahkan item ke cart');
+  }
+});
+
+// **Thunk untuk memperbarui jumlah item dalam cart**
+export const updateCartItem = createAsyncThunk('cart/updateCartItem', async ({ id, qty }, { rejectWithValue }) => {
+  try {
+    const token = localStorage.getItem('accessToken');  // Ambil token dari localStorage
+    const response = await axios.put(`${BASE_URL}/api/cart/${id}`, { qty }, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data || 'Gagal memperbarui item dalam cart');
+  }
+});
+
+// **Thunk untuk menghapus item dari cart**
+export const removeCartItem = createAsyncThunk('cart/removeCartItem', async (id, { rejectWithValue }) => {
+  try {
+    const token = localStorage.getItem('accessToken');  // Ambil token dari localStorage
+    await axios.delete(`${BASE_URL}/api/cart/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return id; // Kembalikan ID item yang dihapus
+  } catch (error) {
+    return rejectWithValue(error.response?.data || 'Gagal menghapus item dari cart');
+  }
 });
 
 const initialState = {
-  foodList: [],
-  cartItems: {},
+  cartItems: [],
   status: 'idle',
   error: null,
 };
@@ -21,45 +64,43 @@ const cartSlice = createSlice({
   name: 'cart',
   initialState,
   reducers: {
-    addToCart: (state, action) => {
-      const itemId = action.payload;
-      if (!state.cartItems[itemId]) {
-        state.cartItems[itemId] = 1;
-      } else {
-        state.cartItems[itemId] += 1;
-      }
-    },
-    removeFromCart: (state, action) => {
-      const itemId = action.payload;
-      if (state.cartItems[itemId]) {
-        state.cartItems[itemId] -= 1;
-        if (state.cartItems[itemId] <= 0) {
-          delete state.cartItems[itemId];
-        }
-      }
+    resetCart: (state) => {
+      state.cartItems = []; 
     },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchFoodList.pending, (state) => {
+      .addCase(fetchCartItems.pending, (state) => {
         state.status = 'loading';
       })
-      .addCase(fetchFoodList.fulfilled, (state, action) => {
+      .addCase(fetchCartItems.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        // Masukkan data makanan ke dalam state
-        state.foodList = action.payload;
+        state.cartItems = action.payload;
       })
-      .addCase(fetchFoodList.rejected, (state, action) => {
+      .addCase(fetchCartItems.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = action.error.message;
+        state.error = action.payload;
+      })
+      .addCase(addToCart.fulfilled, (state, action) => {
+        console.log("✅ Item berhasil ditambahkan ke cart Redux:", action.payload);
+        state.cartItems.push(action.payload);
+      })
+      .addCase(updateCartItem.fulfilled, (state, action) => {
+        const index = state.cartItems.findIndex((item) => item._id === action.payload._id);
+        if (index !== -1) {
+          state.cartItems[index] = action.payload;
+        }
+      })
+      .addCase(removeCartItem.fulfilled, (state, action) => {
+        state.cartItems = state.cartItems.filter((item) => item._id !== action.payload);
       });
   },
 });
 
+// **Selector untuk menghitung total jumlah barang dalam cart**
 export const selectTotalCartAmount = (state) => {
-    return Object.values(state.cart.cartItems).reduce((total, itemCount) => total + itemCount, 0);
-  };
+  return state.cart.cartItems.reduce((total, item) => total + item.qty, 0);
+};
 
-export const { addToCart, removeFromCart } = cartSlice.actions;
-
+export const { resetCart } = cartSlice.actions;
 export default cartSlice.reducer;

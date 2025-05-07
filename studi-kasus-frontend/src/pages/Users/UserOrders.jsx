@@ -1,6 +1,6 @@
 import React from 'react';
 
-const UserOrders = ({ orders }) => {
+export const UserOrders = ({ orders }) => {
   return (
     <div>
       <h3>User Orders</h3>
@@ -13,5 +13,3 @@ const UserOrders = ({ orders }) => {
     </div>
   );
 };
-
-export default UserOrders;

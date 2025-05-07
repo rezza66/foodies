@@ -1,9 +1,13 @@
 .header {
+    width: 100%; 
+    max-width: 1200px; 
     height: 34vw;
     margin: 30px auto;
-    background: url('/header_img.png') no-repeat;
-    background-size: contain;
+    background: url('/front.jpg') no-repeat;
+    background-size: cover;
     position: relative;
+    border-radius: 15px;
+    overflow: hidden;
 }
 
 .header-contents {
@@ -13,7 +17,7 @@
     align-items: start;
     gap: 1.5vw;
     max-width: 50%;
-    bottom: 10%;
+    bottom: 20%;
     left: 6vw;
     animation: fadeIn 3s;
 }
@@ -33,6 +37,7 @@
     border: none;
     color: #747474;
     font-weight: 500;
+    margin-top : 5px;
     padding: 1vw 2.3vw;
     border-color: white;
     font-size: max(1vw, 13px);

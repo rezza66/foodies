@@ -28,13 +28,6 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/* const orderIncrement = await AutoIncrement.findOneAndUpdate(
-  { id: "order_id" },
-  { $inc: { seq: 1 } },
-  { new: true }
-);
- */
-
 orderSchema.virtual("items_count").get(function () {
   return this.order_items.reduce(
     (total, item) => total + parseInt(item.qty),

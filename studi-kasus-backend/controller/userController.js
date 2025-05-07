@@ -1,7 +1,7 @@
 import User from '../models/userModel.js';
 
 // Create a new user
-export const createUser = async (req, res) => {
+export const createUser = async (req, res, next) => {
   try {
     const { username, email, password, role } = req.body;
     const newUser = new User({ username, email, password, role });
@@ -23,7 +23,7 @@ export const getUsers = async (req, res) => {
 };
 
 // Get a single user by ID
-export const getUserById = async (req, res) => {
+export const getUserById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const user = await User.findById(id);
@@ -34,8 +34,24 @@ export const getUserById = async (req, res) => {
   }
 };
 
+export const getUserProfile = async (req, res, next) => {
+  try {
+      const _id = req.user._id; // ID dari JWT
+      const user = await User.findById(_id).select("-password"); 
+
+      if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+      }
+
+      res.status(200).json(user);
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    next(error);
+  }
+};
+
 // Update a user by ID
-export const updateUser = async (req, res) => {
+export const updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { username, email, password, role } = req.body;
@@ -48,7 +64,7 @@ export const updateUser = async (req, res) => {
 };
 
 // Delete a user by ID
-export const deleteUser = async (req, res) => {
+export const deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
     const deletedUser = await User.findByIdAndDelete(id);

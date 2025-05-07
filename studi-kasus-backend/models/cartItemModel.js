@@ -9,15 +9,12 @@ const cartSchema = new mongoose.Schema({
     },
     qty: {
         type: Number,
-        required: [true, 'qty harus diisi'],
-        minlength: [1, 'Minimal qty adalah 1'],
-        trim: true
+        required: [true, 'Qty harus diisi'],
+        min: [1, 'Minimal qty adalah 1'] // Gunakan min bukan minlength
     },
     price: {
-        type: String,
-        minlength: [5, 'Panjang nama makanan minimal 5 karakter'],
-        required: true,
-        trim: true
+        type: Number, // Ubah dari String ke Number
+        required: true
     },
     image: {
         type: String,
@@ -27,12 +24,13 @@ const cartSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
+        required: true
     },
     product: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Product',
-    },
-    
-});
+        required: true
+    }
+}, { timestamps: true });
 
 export default mongoose.model('Cart', cartSchema);

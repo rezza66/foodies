@@ -1,23 +1,31 @@
 import React, { useState } from "react";
 import "./Navbar.css";
 import { assets } from "../../assets/assets";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
 import { useSelector, useDispatch } from 'react-redux';
 import { selectTotalCartAmount } from '../../redux/slices/cartSlice';
-import { selectAuthToken, userLogout } from '../../redux/slices/auth'; // Import untuk token dan action logout
+import { selectAuthToken, userLogout } from '../../redux/slices/auth';
+import { resetCart } from "../../redux/slices/cartSlice";
 
 const Navbar = ({ setShowLogin }) => {
   const [menu, setMenu] = useState("home");
   const dispatch = useDispatch();
+  const navigate = useNavigate(); // Inisialisasi useNavigate
 
-  // Menggunakan selektor untuk mendapatkan jumlah total item di keranjang
   const totalCartAmount = useSelector(selectTotalCartAmount);
-
-  // Memeriksa apakah token ada (artinya user sudah login)
   const token = useSelector(selectAuthToken);
+  
+  const cartCount = useSelector((state) =>
+    (state.cart.cartItems || []).reduce(
+      (total, item) => total + (item.qty || 0),
+      0
+    )
+  );
 
   const handleLogout = () => {
     dispatch(userLogout());
+    dispatch(resetCart());
+    navigate("/"); // Redirect ke halaman home setelah logout
   };
 
   return (
@@ -29,8 +37,10 @@ const Navbar = ({ setShowLogin }) => {
       <div className="navbar-right">
         <img src={assets.search_icon} alt="" />
         <div className="navbar-search-icon">
-          <Link to='/carts'><img src={assets.basket_icon} alt="..." /></Link>         
-          <div className={totalCartAmount === 0 ? "" : "dot"}></div>
+          <Link to='/carts'>
+            <img src={assets.basket_icon} alt="..." />
+            {cartCount > 0 && <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{cartCount}</span>} {/* Menampilkan badge jika ada item di cart */}
+          </Link>         
         </div>
         
         {token ? (

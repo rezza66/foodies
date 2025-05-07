@@ -1,19 +1,26 @@
 import DeliveryAddress from '../models/deliveryAddressModel.js';
+import mongoose from 'mongoose';
 
 export const createDeliveryAddress = async (req, res, next) => {
   try {
     const deliveryAddress = new DeliveryAddress({...req.body, user: req.user._id});
     await deliveryAddress.save();
-    res.status(201).json(deliveryAddress);
+    res.status(201).json({
+      success: true,
+      data: deliveryAddress,
+      message: 'Alamat berhasil dibuat'
+    });
   } catch (error) {
-    next(error)
+    next(error);
   }
 };
 
 export const getDeliveryAddresses = async (req, res, next) => {
   try {
-    const deliveryAddresses = await DeliveryAddress.find({ user: req.user._id }).populate('user');
-    
+    const deliveryAddresses = await DeliveryAddress.find(
+      { user: req.user._id },
+      { user: 0 } // Exclude user field dari response
+    );
     res.status(200).json(deliveryAddresses);
   } catch (error) {
     next(error);
@@ -48,14 +55,40 @@ export const updateDeliveryAddress = async (req, res, next) => {
   }
 };
 
-export const deleteDeliveryAddress = async (req, res, next) => {
+export const deleteDeliveryAddress = async (req, res) => {
   try {
-    const deliveryAddress = await DeliveryAddress.findByIdAndDelete(req.params.id);
-    if (!deliveryAddress) {
-      return res.status(404).json({ message: 'Delivery Address not found' });
+    // Validasi ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'ID tidak valid' 
+      });
     }
-    res.status(200).json({ message: 'Delivery Address deleted' });
+
+    // Pastikan alamat milik user yang login
+    const address = await DeliveryAddress.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user._id
+    });
+
+    if (!address) {
+      return res.status(404).json({
+        success: false,
+        message: 'Alamat tidak ditemukan atau tidak memiliki akses'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: { _id: req.params.id },
+      message: 'Alamat berhasil dihapus'
+    });
+
   } catch (error) {
-    next(error)
+    console.error('Server error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Terjadi kesalahan server'
+    });
   }
 };

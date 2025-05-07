@@ -1,35 +1,80 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import axios from 'axios';
+import { BASE_URL } from '../../utils/config';
 
-const initialState = localStorage.getItem('auth')
-  ? JSON.parse(localStorage.getItem('auth'))
-  : { user: null, token: null, orders: [], address: null };
+// Action untuk login
+export const loginUser = createAsyncThunk(
+  'auth/loginUser',
+  async ({ email, password }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(`${BASE_URL}/auth/login`, { email, password });
+      return response.data;  // Kembalikan data yang diperlukan
+    } catch (error) {
+      return rejectWithValue(error.response.data);  // Jika gagal, kirim error ke payload
+    }
+  }
+);
+
+// Action untuk register
+export const registerUser = createAsyncThunk(
+  'auth/registerUser',
+  async ({ username, email, password, role }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(`${BASE_URL}/auth/register`, { username, email, password, role });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+const initialState = (() => {
+  try {
+    // Mengambil hanya token dari localStorage dengan nama 'accessToken'
+    return { user: null, token: localStorage.getItem('accessToken') };
+  } catch (error) {
+    return { user: null, token: null };
+  }
+})();
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    userLogin: (state, action) => {
-      state.user = action.payload.user;
-      state.token = action.payload.token;
-      // Menyimpan state ke localStorage
-      localStorage.setItem('auth', JSON.stringify(state));
-    },
     userLogout: (state) => {
       state.user = null;
       state.token = null;
-      // Menghapus state dari localStorage
-      localStorage.removeItem('auth');
+      localStorage.removeItem('accessToken');
     },
-    // Action tambahan untuk menyimpan orders dan address
-    setOrders: (state, action) => {
-      state.orders = action.payload;
-    },
-    setAddress: (state, action) => {
-      state.address = action.payload;
-    }
+  },
+  extraReducers: (builder) => {
+    builder
+    .addCase(loginUser.fulfilled, (state, action) => {
+      console.log("🚀 Login berhasil, data Redux:", action.payload);
+      state.user = action.payload.user;
+      state.token = action.payload.token;
+    
+      // ✅ Simpan user & token di localStorage
+      localStorage.setItem('accessToken', action.payload.token);
+      localStorage.setItem('user', JSON.stringify(action.payload.user));
+    })
+    .addCase(registerUser.fulfilled, (state, action) => {
+      state.user = action.payload.user;
+      state.token = action.payload.token;
+    
+      // ✅ Simpan user & token di localStorage
+      localStorage.setItem('accessToken', action.payload.token);
+      localStorage.setItem('user', JSON.stringify(action.payload.user));
+    })
+      .addCase(loginUser.rejected, (state, action) => {
+        console.error(action.payload);  // Menangani error jika login gagal
+      })
+      .addCase(registerUser.rejected, (state, action) => {
+        console.error(action.payload);  // Menangani error jika register gagal
+      });
   }
 });
 
-export const { userLogin, userLogout, setOrders, setAddress } = authSlice.actions;
+export const { userLogout } = authSlice.actions;
 export const selectAuthToken = (state) => state.auth.token;
 export default authSlice.reducer;
