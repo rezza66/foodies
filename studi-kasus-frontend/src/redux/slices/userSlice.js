@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { BASE_URL } from '../../utils/config';
 import axios from "axios";
-
-const API_HOST = import.meta.env.VITE_APP_API_HOST;
 
 // Async thunk untuk mengambil user yang sedang login
 export const fetchUser = createAsyncThunk("user/fetchUser", async (_, thunkAPI) => {
@@ -9,7 +8,7 @@ export const fetchUser = createAsyncThunk("user/fetchUser", async (_, thunkAPI) 
   if (!token) return thunkAPI.rejectWithValue("No access token available");
 
   try {
-    const response = await axios.get(`${API_HOST}/api/users/me`, {
+    const response = await axios.get(`${BASE_URL}/api/users/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

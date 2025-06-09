@@ -1,10 +1,9 @@
 import axios from "axios";
-
-const API_HOST = import.meta.env.VITE_APP_API_HOST;
+import { BASE_URL } from "../utils/config";
 
 export const getAddress = async (token) => {
   try {
-    const response = await axios.get(`${API_HOST}/api/deliveryAddresses`, {
+    const response = await axios.get(`${BASE_URL}/api/deliveryAddresses`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
@@ -21,7 +20,7 @@ export const createAddress = async (addressData, token) => {
 
   try {
     const response = await axios.post(
-      `${API_HOST}/api/deliveryAddress`,
+      `${BASE_URL}/api/deliveryAddress`,
       addressData,
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -33,11 +32,10 @@ export const createAddress = async (addressData, token) => {
 };
 
 // address.js
-// address.js
 export const deleteAddress = async (addressId, token) => {
   try {
     const response = await axios.delete(
-      `${API_HOST}/api/deliveryAddress/${addressId}`, // Perhatikan penulisan endpoint
+      `${BASE_URL}/api/deliveryAddress/${addressId}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,

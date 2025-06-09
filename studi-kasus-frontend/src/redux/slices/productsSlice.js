@@ -1,12 +1,13 @@
 // src/redux/slices/productsSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
-
-const API_URL_PRODUCTS = 'http://localhost:5000/api/products';
+import { BASE_URL } from '../../utils/config';
 
 // Async thunk untuk mengambil data makanan dari backend dengan pagination dan kategori
 export const fetchFoodList = createAsyncThunk('products/fetchFoodList', async ({ page = 1, limit = 9, categoryId = '' }) => {
-  const response = await axios.get(`${API_URL_PRODUCTS}?page=${page}&limit=${limit}&category=${categoryId}`);
+  const response = await axios.get(
+    `${BASE_URL}/api/products?page=${page}&limit=${limit}&category=${categoryId}`
+  );
   return response.data;
 });
 
