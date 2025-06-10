@@ -35,7 +35,7 @@ const orderSlice = createSlice({
     count: 0,
     loading: false,
     error: null,
-    createStatus: 'idle', // Status khusus untuk create operation
+    createStatus: 'idle', 
     createError: null
   },
   reducers: {

@@ -7,7 +7,7 @@ export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${BASE_URL}/auth/login`, { email, password });
+      const response = await axios.post(`${BASE_URL}/api/auth/login`, { email, password });
       return response.data;  // Kembalikan data yang diperlukan
     } catch (error) {
       return rejectWithValue(error.response.data);  // Jika gagal, kirim error ke payload
@@ -20,7 +20,7 @@ export const registerUser = createAsyncThunk(
   'auth/registerUser',
   async ({ username, email, password, role }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${BASE_URL}/auth/register`, { username, email, password, role });
+      const response = await axios.post(`${BASE_URL}/api/auth/register`, { username, email, password, role });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);
@@ -50,7 +50,6 @@ const authSlice = createSlice({
   extraReducers: (builder) => {
     builder
     .addCase(loginUser.fulfilled, (state, action) => {
-      console.log("🚀 Login berhasil, data Redux:", action.payload);
       state.user = action.payload.user;
       state.token = action.payload.token;
     

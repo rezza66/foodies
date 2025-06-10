@@ -18,7 +18,7 @@ const initialState = {
   page: 1,
   totalPages: 1,
   limit: 9,
-  selectedCategory: '', // Tambahkan state untuk kategori yang dipilih
+  selectedCategory: '',
 };
 
 const productSlice = createSlice({
@@ -31,7 +31,7 @@ const productSlice = createSlice({
     setLimit: (state, action) => {
       state.limit = action.payload;
     },
-    setCategory: (state, action) => { // Tambahkan reducer untuk mengupdate kategori
+    setCategory: (state, action) => { 
       state.selectedCategory = action.payload;
     },
   },
@@ -61,6 +61,6 @@ export const selectFoodError = (state) => state.products.error;
 export const selectPage = (state) => state.products.page;
 export const selectTotalPages = (state) => state.products.totalPages;
 export const selectLimit = (state) => state.products.limit;
-export const selectSelectedCategory = (state) => state.products.selectedCategory; // Selector untuk kategori
+export const selectSelectedCategory = (state) => state.products.selectedCategory;
 
 export default productSlice.reducer;

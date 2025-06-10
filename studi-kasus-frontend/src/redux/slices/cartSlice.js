@@ -5,7 +5,7 @@ import { BASE_URL } from '../../utils/config';
 // **Thunk untuk mengambil daftar item dalam cart**
 export const fetchCartItems = createAsyncThunk('cart/fetchCartItems', async (id, { rejectWithValue }) => {
   try {
-    const token = localStorage.getItem('accessToken');  // Ambil token dari localStorage
+    const token = localStorage.getItem('accessToken'); 
     const response = await axios.get(`${BASE_URL}/api/cart/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -31,7 +31,7 @@ export const addToCart = createAsyncThunk('cart/addToCart', async (item, { rejec
 // **Thunk untuk memperbarui jumlah item dalam cart**
 export const updateCartItem = createAsyncThunk('cart/updateCartItem', async ({ id, qty }, { rejectWithValue }) => {
   try {
-    const token = localStorage.getItem('accessToken');  // Ambil token dari localStorage
+    const token = localStorage.getItem('accessToken');
     const response = await axios.put(`${BASE_URL}/api/cart/${id}`, { qty }, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -44,11 +44,11 @@ export const updateCartItem = createAsyncThunk('cart/updateCartItem', async ({ i
 // **Thunk untuk menghapus item dari cart**
 export const removeCartItem = createAsyncThunk('cart/removeCartItem', async (id, { rejectWithValue }) => {
   try {
-    const token = localStorage.getItem('accessToken');  // Ambil token dari localStorage
+    const token = localStorage.getItem('accessToken'); 
     await axios.delete(`${BASE_URL}/api/cart/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    return id; // Kembalikan ID item yang dihapus
+    return id; 
   } catch (error) {
     return rejectWithValue(error.response?.data || 'Gagal menghapus item dari cart');
   }
@@ -82,7 +82,6 @@ const cartSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(addToCart.fulfilled, (state, action) => {
-        console.log("✅ Item berhasil ditambahkan ke cart Redux:", action.payload);
         state.cartItems.push(action.payload);
       })
       .addCase(updateCartItem.fulfilled, (state, action) => {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './ExploreMenu.css';
+import { BASE_URL } from '../../utils/config';
 
 const ExploreMenu = ({ onCategorySelect }) => {
   const [categories, setCategories] = useState([]);
@@ -11,7 +12,7 @@ const ExploreMenu = ({ onCategorySelect }) => {
     const fetchCategories = async () => {
       setStatus('loading');
       try {
-        const response = await fetch('http://localhost:5000/api/categories');
+        const response = await fetch(`${BASE_URL}/api/categories`);
         if (!response.ok) {
           throw new Error('Failed to fetch categories');
         }
